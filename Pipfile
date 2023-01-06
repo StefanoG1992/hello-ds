@@ -1,0 +1,28 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+
+[packages]
+click="*"
+pyyaml="*"
+mlflow="*"
+numpy="*"
+torch="*"
+torchvision="*"
+torchmetrics="*"
+pytorch_lightning="*"
+
+
+[dev-packages]
+black = "*"
+pre-commit = "*"
+pylint="*"
+ipykernel="*"
+
+[requires]
+python_version = "3.10"
+
+[scripts]
+init = "pre-commit install"
