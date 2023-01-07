@@ -6,14 +6,16 @@ Execute full ml pipeline from data preparation to testing
 from pathlib import Path
 
 import click
+import mlflow
 import mlflow.pytorch
 
 import pytorch_lightning as pl
 
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from utils.log import config_logger
 from data import LitDataModule
 from model import LitNet
+
+from utils.log import config_logger
 
 
 @click.command(name="pipeline")
@@ -24,39 +26,55 @@ from model import LitNet
     type=click.Path(exists=True, path_type=Path),
     help="Path to dataset directory",
 )
-def pipeline(data_dir: Path) -> None:
+@click.option(
+    "-T",
+    "--testing",
+    is_flag=True,
+    default=False,
+    help="If passed, use only a short excerpt of the dataset",
+)
+def pipeline(data_dir: Path, testing: bool) -> None:
     """Full ml pipeline, from data retrieval to evaluation.
 
     Args:
-        data_dir: path to dataset directory
+        data_dir (path): path to dataset directory
+        testing (bool): if true, use only a small fraction of the data
     """
     # logging
     logger = config_logger()
     logger.info("Starting ml pipeline.")
 
-    logger.info("Lightning setup:")
-    datamodule: LitDataModule = LitDataModule(
-        data_dir, batch_size=128, num_workers=8, testing=False
-    )
-    datamodule.setup(stage="fit")
+    with mlflow.start_run(run_name="basic-run"):
+        # sync mlflow logger with custom one
+        pytorch_logger = mlflow.pytorch._logger
+        logger.addHandler(pytorch_logger)
 
-    # initialize net
-    net = LitNet(lr=0.001)
+        logger.info("Lightning setup:")
+        datamodule: LitDataModule = LitDataModule(
+            data_dir, batch_size=32, num_workers=8, testing=testing
+        )
+        datamodule.setup(stage="fit")
 
-    logger.info("Done. Training step:")
-    mlflow.pytorch.autolog()
+        # initialize net
+        net = LitNet(lr=0.001)
 
-    trainer = pl.Trainer(
-        max_epochs=10,
-        auto_lr_find=True,
-        callbacks=[EarlyStopping(monitor="eval_loss", mode="min")],
-    )
+        logger.info("Done. Training step:")
+        mlflow.pytorch.autolog()
 
-    # training our model
-    trainer.fit(net, datamodule=datamodule)
+        trainer = pl.Trainer(
+            max_epochs=10,
+            auto_lr_find=True,
+            callbacks=[EarlyStopping(monitor="eval_loss", mode="min")],
+        )
 
-    logger.info("Done. Testing step:")
-    trainer.test(datamodule=datamodule, ckpt_path="best")
+        # training our model
+        trainer.fit(net, datamodule=datamodule)
+
+        logger.info("Done. Testing step:")
+        trainer.test(datamodule=datamodule, ckpt_path="best")
+
+        logger.info("Training finished. Logging model params")
+        mlflow.pytorch.log_model(net, "model")
 
 
 if __name__ == "__main__":
