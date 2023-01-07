@@ -1,4 +1,4 @@
-"""Main function
+"""Main function.
 
 Execute full ml pipeline from data preparation to testing
 """
@@ -25,8 +25,7 @@ from model import LitNet
     help="Path to dataset directory",
 )
 def pipeline(data_dir: Path) -> None:
-    """
-    Full ml pipeline, from data retrieval to evaluation.
+    """Full ml pipeline, from data retrieval to evaluation.
 
     Args:
         data_dir: path to dataset directory
@@ -37,20 +36,20 @@ def pipeline(data_dir: Path) -> None:
 
     logger.info("Lightning setup:")
     datamodule: LitDataModule = LitDataModule(
-        data_dir, batch_size=64, testing=False
+        data_dir, batch_size=128, num_workers=8, testing=False
     )
     datamodule.setup(stage="fit")
 
     # initialize net
-    net = LitNet()
+    net = LitNet(lr=0.001)
 
     logger.info("Done. Training step:")
     mlflow.pytorch.autolog()
 
     trainer = pl.Trainer(
-        max_epochs=50,
+        max_epochs=10,
+        auto_lr_find=True,
         callbacks=[EarlyStopping(monitor="eval_loss", mode="min")],
-        enable_checkpointing=False,
     )
 
     # training our model

@@ -1,4 +1,4 @@
-"""ML model"""
+"""ML model."""
 
 from typing import Literal
 
@@ -15,7 +15,7 @@ from torchmetrics.functional import accuracy
 
 
 class Net(nn.Module):
-    """Convolutional Neural Network to predict labeled images"""
+    """Convolutional Neural Network to predict labeled images."""
 
     def __init__(self):
         super().__init__()
@@ -33,7 +33,7 @@ class Net(nn.Module):
         self.dense_2 = nn.Linear(32, 10)
 
     def forward(self, x: Tensor) -> Tensor:
-        """Forward step"""
+        """Forward step."""
         out = torch.tanh(self.conv2d_1(x))  # B * 16 * 32 * 32
         out = self.dropout_2d(out)  # 2d dropout
         out = torch.tanh(self.conv2d_2(out))
@@ -47,11 +47,12 @@ class Net(nn.Module):
 
 
 class LitNet(pl.LightningModule):
-    """Lightning rewriting of CNN Net class"""
+    """Lightning rewriting of CNN Net class."""
 
-    def __init__(self):
+    def __init__(self, lr: float = 0.001):
         super().__init__()
         self.model = Net()
+        self.lr = lr
 
     def evaluate_step(
         self,
@@ -63,7 +64,7 @@ class LitNet(pl.LightningModule):
 
         Args:
             data (Tensor): data to evaluate. Must have shape B x C x H x W
-            target (Tensor: target for testing. Must have shape B x N_labels
+            target (Tensor): target for testing. Must have shape B x N_labels
             step (str): descriptive step. Must be one of
                 - train
                 - eval
@@ -89,10 +90,8 @@ class LitNet(pl.LightningModule):
 
         return loss, acc
 
-    def training_step(
-        self, batch: tuple[Tensor, Tensor], batch_idx: int
-    ) -> Tensor:
-        """Lightning-automated training step
+    def training_step(self, batch: tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+        """Lightning-automated training step.
 
         batch-idx is used only for lightning internal purposes
         """
@@ -103,7 +102,7 @@ class LitNet(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx: int) -> Tensor:
-        """Lightning-automated validation step
+        """Lightning-automated validation step.
 
         batch-idx is used only for lightning internal purposes
         """
@@ -113,10 +112,8 @@ class LitNet(pl.LightningModule):
         _, acc = self.evaluate_step(data, target, step="eval")
         return acc
 
-    def test_step(
-        self, batch: tuple[Tensor, Tensor], batch_idx: int
-    ) -> Tensor:
-        """Lightning-automated testing step
+    def test_step(self, batch: tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+        """Lightning-automated testing step.
 
         batch-idx is used only for lightning internal purposes
         """
@@ -127,9 +124,9 @@ class LitNet(pl.LightningModule):
         return loss
 
     def forward(self, data: Tensor) -> Tensor:
-        """Overriding abstract lightning forward"""
+        """Overriding abstract lightning forward."""
         return self.model(data)
 
     def configure_optimizers(self) -> optim.Optimizer:
-        """Optimizer for training step"""
-        return optim.Adam(self.parameters())
+        """Optimizer for training step."""
+        return optim.Adam(self.parameters(), lr=self.lr)

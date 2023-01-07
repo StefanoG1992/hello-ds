@@ -1,4 +1,4 @@
-"""Data preparation class"""
+"""Data preparation class."""
 
 from pathlib import Path
 
@@ -12,32 +12,50 @@ from torch.utils.data import random_split
 
 
 class LitDataModule(pl.LightningDataModule):
-    """Lightning data module"""
+    """Lightning data module."""
 
     def __init__(
-        self, data_dir: Path, batch_size: int = 64, testing: bool = True
+        self,
+        data_dir: Path,
+        batch_size: int = 32,
+        pin_memory: bool = True,
+        num_workers: int = 8,
+        persistent_workers: bool = True,
+        testing: bool = False,
     ):
         """
         Init lightning datamodule
         Args:
             data_dir (Path): directory where to download datasets
             batch_size (int): batch size, default is 64
+            pin_memory (bool, optional): If ``True``, the data loader will copy Tensors
+            into device/CUDA pinned memory before returning them.  If your data elements
+            are a custom type, or your :attr:`collate_fn` returns a batch that is a custom type,
+            see the example below.
+            num_workers (int, optional): how many subprocesses to use for data
+            loading. ``0`` means that the data will be loaded in the main process.
+            (default: ``0``)
+            persistent_workers (bool, optional): If ``True``, the data loader will not shutdown
+            the worker processes after a dataset has been consumed once. This allows to
+            maintain the workers `Dataset` instances alive. (default: ``False``)
             testing (bool): if True, limit datasets size to 64
         """
         super().__init__()
         self.data_dir: Path = data_dir
         self.batch_size: int = batch_size
         self.testing: bool = testing
+        self.pin_memory: bool = pin_memory
+        self.num_workers: int = num_workers
+        self.persistent_workers: bool = persistent_workers
         self.data_train: Dataset = None
         self.data_val: Dataset = None
         self.data_test: Dataset = None
 
     def setup(self, stage: str | None) -> None:
-        """
-        Setup step for lightning datamodule.
+        """Setup step for lightning datamodule.
 
         Args:
-            stage (str | None): used by lightning
+            stage (str | None): used to log which stage are we in, e.g. train
         """
         transform = transforms.Compose(
             [
@@ -74,28 +92,34 @@ class LitDataModule(pl.LightningDataModule):
             self.data_test = data_test
 
     def train_dataloader(self) -> DataLoader:
-        """Create dataloader for train dataset"""
+        """Create dataloader for train dataset."""
         return DataLoader(
             self.data_train,
             batch_size=self.batch_size,
             shuffle=True,
-            num_workers=8,
+            pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+            persistent_workers=self.persistent_workers,
         )
 
     def val_dataloader(self) -> DataLoader:
-        """Generate dataloader for validation dataset"""
+        """Generate dataloader for validation dataset."""
         return DataLoader(
             self.data_val,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers=8,
+            pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+            persistent_workers=self.persistent_workers,
         )
 
     def test_dataloader(self) -> DataLoader:
-        """Generate dataloader for test dataset"""
+        """Generate dataloader for test dataset."""
         return DataLoader(
             self.data_test,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers=8,
+            pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+            persistent_workers=self.persistent_workers,
         )
