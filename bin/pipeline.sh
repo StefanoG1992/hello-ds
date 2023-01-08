@@ -1,4 +1,4 @@
 #!/bin/sh
 # NB: to be executed from workdir as bin/executable.sh
 
-pipenv run python src/main.py -d data/p1ch7/
+pipenv run python src/main.py -d data/p1ch7/ -T -e test -r "$1"

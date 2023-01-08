@@ -49,9 +49,17 @@ class Net(nn.Module):
 class LitNet(pl.LightningModule):
     """Lightning rewriting of CNN Net class."""
 
-    def __init__(self, lr: float = 0.001):
+    def __init__(self, lr: float = 0.001, log_params: bool = False):
+        """
+        Store init params
+        Args:
+            lr (float): optimizer learning rate
+            log_params (bool): if False, avoid to save params in the
+            'lightning_logs' directory
+        """
         super().__init__()
         self.model = Net()
+        self.log_params = log_params
         self.lr = lr
 
     def evaluate_step(
